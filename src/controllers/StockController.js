@@ -122,13 +122,20 @@ class StockController {
     try {
       const { product_id, variant_id, warehouse_id, new_quantity, reason, created_by } = req.body;
       
-      // Get current stock
-      const currentStock = await Stock.getStock(product_id, variant_id, warehouse_id);
+      // Get current stock or create if it doesn't exist
+      let currentStock = await Stock.getStock(product_id, variant_id, warehouse_id);
       if (!currentStock) {
-        return res.status(404).json({
-          success: false,
-          message: 'Stock record not found'
+        // Create new stock record
+        await Stock.upsertStock({
+          product_id,
+          variant_id,
+          warehouse_id,
+          quantity_on_hand: 0,
+          quantity_reserved: 0,
+          min_reorder_level: 10,
+          last_cost: null
         });
+        currentStock = await Stock.getStock(product_id, variant_id, warehouse_id);
       }
       
       const change_qty = new_quantity - currentStock.quantity_on_hand;

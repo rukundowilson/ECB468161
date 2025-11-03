@@ -23,3 +23,7 @@ router.get('/movements/type/:type', StockController.getMovementsByType);
 router.get('/movements/stats', StockController.getMovementStats);
 
 export default router;
+
+
+
+

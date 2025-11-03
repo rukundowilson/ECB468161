@@ -11,6 +11,11 @@ class Stock {
     this.min_reorder_level = data.min_reorder_level;
     this.last_cost = data.last_cost;
     this.updated_at = data.updated_at;
+    // joined fields (optional)
+    this.product_name = data.product_name;
+    this.product_sku = data.product_sku;
+    this.variant_sku = data.variant_sku;
+    this.warehouse_name = data.warehouse_name;
   }
 
   // Get stock for a specific product/variant in a warehouse
@@ -21,9 +26,10 @@ class Stock {
         FROM stock s
         JOIN products p ON s.product_id = p.id
         JOIN warehouses w ON s.warehouse_id = w.id
-        WHERE s.product_id = ? AND s.variant_id = ? AND s.warehouse_id = ?
+        WHERE s.product_id = ? AND s.variant_id ${variantId === null ? 'IS NULL' : '= ?'} AND s.warehouse_id = ?
       `;
-      db.query(query, [productId, variantId, warehouseId], (err, results) => {
+      const params = variantId === null ? [productId, warehouseId] : [productId, variantId, warehouseId];
+      db.query(query, params, (err, results) => {
         if (err) reject(err);
         else if (results.length === 0) resolve(null);
         else resolve(new Stock(results[0]));
@@ -69,6 +75,24 @@ class Stock {
         ORDER BY p.name
       `;
       db.query(query, [warehouseId], (err, results) => {
+        if (err) reject(err);
+        else resolve(results.map(row => new Stock(row)));
+      });
+    });
+  }
+
+  // Get all stock levels
+  static async getAllStock() {
+    return new Promise((resolve, reject) => {
+      const query = `
+        SELECT s.*, p.name as product_name, p.sku as product_sku, w.name as warehouse_name, pv.sku as variant_sku
+        FROM stock s
+        JOIN products p ON s.product_id = p.id
+        JOIN warehouses w ON s.warehouse_id = w.id
+        LEFT JOIN product_variants pv ON s.variant_id = pv.id
+        ORDER BY w.name, p.name
+      `;
+      db.query(query, (err, results) => {
         if (err) reject(err);
         else resolve(results.map(row => new Stock(row)));
       });

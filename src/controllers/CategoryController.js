@@ -49,7 +49,7 @@ class CategoryController {
   // Create new category
   static async createCategory(req, res) {
     try {
-      const { name, description } = req.body;
+      const { name, description, requires_size, size_type, size_options } = req.body;
       
       // Validate required fields
       if (!name) {
@@ -72,12 +72,15 @@ class CategoryController {
         });
       }
       
-      const categoryId = await Category.create({ name, description });
+      const categoryId = await Category.create({ name, description, requires_size, size_type, size_options });
+      
+      // Get the created category to return full data
+      const createdCategory = await Category.getById(categoryId);
       
       res.status(201).json({
         success: true,
         message: 'Category created successfully',
-        data: { id: categoryId }
+        data: createdCategory
       });
     } catch (error) {
       res.status(500).json({
@@ -92,7 +95,7 @@ class CategoryController {
   static async updateCategory(req, res) {
     try {
       const { id } = req.params;
-      const { name, description } = req.body;
+      const { name, description, requires_size, size_type, size_options } = req.body;
       
       const category = await Category.getById(id);
       if (!category) {
@@ -117,12 +120,15 @@ class CategoryController {
         }
       }
       
-      const success = await category.update({ name, description });
+      const success = await category.update({ name, description, requires_size, size_type, size_options });
       
       if (success) {
+        // Get the updated category to return full data
+        const updatedCategory = await Category.getById(id);
         res.json({
           success: true,
-          message: 'Category updated successfully'
+          message: 'Category updated successfully',
+          data: updatedCategory
         });
       } else {
         res.status(500).json({
@@ -176,3 +182,7 @@ class CategoryController {
 }
 
 export default CategoryController;
+
+
+
+

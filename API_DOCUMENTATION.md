@@ -30,11 +30,16 @@ Currently no authentication is implemented. This should be added for production 
 - **PUT** `/api/products/:id` - Update product
 - **DELETE** `/api/products/:id` - Delete product
 
+#### Product Images
+- **POST** `/api/products/upload` - Upload a product image (form-data `image`). Stored on Cloudinary.
+
 #### Product Variants
 - **GET** `/api/products/:id/variants` - Get product variants
 - **POST** `/api/products/:id/variants` - Create product variant
 - **PUT** `/api/products/variants/:variantId` - Update variant
 - **DELETE** `/api/products/variants/:variantId` - Delete variant
+  
+Variant payload supports optional `image_url` returned by the upload endpoint.
 
 ### Warehouses
 - **GET** `/api/warehouses` - Get all warehouses
@@ -88,6 +93,39 @@ POST /api/products
 }
 ```
 
+### Upload Product Image
+```
+POST /api/products/upload
+Content-Type: multipart/form-data
+Body: image=<file>
+
+Response 201
+{
+  "success": true,
+  "message": "Image uploaded successfully",
+  "data": {
+    "url": "https://res.cloudinary.com/<cloud>/image/upload/v1234567890/products/abcd.jpg",
+    "public_id": "products/abcd",
+    "width": 800,
+    "height": 800,
+    "format": "jpg",
+    "size": 123456
+  }
+}
+```
+Use the same endpoint to upload variant images and include the returned `url` as `image_url` in the variant payloads.
+
+### Cloudinary Setup (Free tier)
+1. Create a free Cloudinary account.
+2. Add these to your `.env`:
+```
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=products
+```
+3. Restart the server.
+
 ### Create Product Variant
 ```json
 POST /api/products/1/variants
@@ -98,6 +136,7 @@ POST /api/products/1/variants
     "size": "15.6 inch"
   },
   "additional_price": 50.00,
+  "image_url": "https://res.cloudinary.com/<cloud>/image/upload/v123/products/variant.jpg",
   "active": 1
 }
 ```
@@ -233,3 +272,7 @@ For a complete e-commerce platform, consider adding:
 - Customer management
 - Reporting and analytics
 - Frontend dashboard
+
+
+
+

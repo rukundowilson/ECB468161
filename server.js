@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import db from './src/config/db.js';
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Import routes
 import stockRoutes from './src/routes/stock.js';
@@ -20,6 +24,17 @@ app.use(cors());
 app.use(corsHandler);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Ensure uploads directory exists and serve static files
+const uploadsDir = path.resolve('uploads');
+const productUploadsDir = path.join(uploadsDir, 'products');
+try {
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+  if (!fs.existsSync(productUploadsDir)) fs.mkdirSync(productUploadsDir, { recursive: true });
+} catch (e) {
+  console.error('Failed to create uploads directory:', e.message);
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

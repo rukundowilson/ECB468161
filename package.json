@@ -5,17 +5,31 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon"
+    "dev": "nodemon",
+    "migrate:image": "node ./src/scripts/migrate_add_image_url.js",
+    "migrate:variant-image": "node ./src/scripts/migrate_add_variant_image_url.js",
+    "migrate:customers": "node ./src/scripts/migrate_create_customers_table.js",
+    "migrate:addresses": "node ./src/scripts/migrate_create_addresses_table.js",
+    "migrate:carts": "node ./src/scripts/migrate_create_carts_table.js",
+    "migrate:cart-items": "node ./src/scripts/migrate_create_cart_items_table.js",
+    "migrate:orders": "node ./src/scripts/migrate_create_orders_table.js",
+    "migrate:order-items": "node ./src/scripts/migrate_create_order_items_table.js",
+    "migrate:cart-checkout": "node ./src/scripts/migrate_all_cart_checkout.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "multer": "^2.0.0",
+    "iconv-lite": "^0.7.0",
     "mysql2": "^3.15.3",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "raw-body": "^3.0.1",
+    "streamifier": "^0.1.1"
   }
 }

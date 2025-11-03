@@ -12,3 +12,7 @@ router.put('/:id', WarehouseController.updateWarehouse);
 router.delete('/:id', WarehouseController.deleteWarehouse);
 
 export default router;
+
+
+
+

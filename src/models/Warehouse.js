@@ -82,3 +82,4 @@ class Warehouse {
 }
 
 export default Warehouse;
+

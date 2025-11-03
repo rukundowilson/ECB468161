@@ -115,3 +115,4 @@ class StockMovement {
 }
 
 export default StockMovement;
+

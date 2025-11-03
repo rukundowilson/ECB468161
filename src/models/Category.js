@@ -5,6 +5,9 @@ class Category {
     this.id = data.id;
     this.name = data.name;
     this.description = data.description;
+    this.requires_size = data.requires_size || 0;
+    this.size_type = data.size_type || null; // 'numeric', 'letter', or null
+    this.size_options = data.size_options || null; // JSON string of size options
     this.created_at = data.created_at;
   }
 
@@ -34,9 +37,10 @@ class Category {
   // Create new category
   static async create(categoryData) {
     return new Promise((resolve, reject) => {
-      const { name, description } = categoryData;
-      const query = 'INSERT INTO categories (name, description) VALUES (?, ?)';
-      db.query(query, [name, description], (err, result) => {
+      const { name, description, requires_size = 0, size_type = null, size_options = null } = categoryData;
+      const query = 'INSERT INTO categories (name, description, requires_size, size_type, size_options) VALUES (?, ?, ?, ?, ?)';
+      const sizeOptionsJson = size_options ? JSON.stringify(size_options) : null;
+      db.query(query, [name, description, requires_size, size_type, sizeOptionsJson], (err, result) => {
         if (err) reject(err);
         else resolve(result.insertId);
       });
@@ -46,9 +50,10 @@ class Category {
   // Update category
   async update(updateData) {
     return new Promise((resolve, reject) => {
-      const { name, description } = updateData;
-      const query = 'UPDATE categories SET name = ?, description = ? WHERE id = ?';
-      db.query(query, [name, description, this.id], (err, result) => {
+      const { name, description, requires_size, size_type, size_options } = updateData;
+      const query = 'UPDATE categories SET name = ?, description = ?, requires_size = ?, size_type = ?, size_options = ? WHERE id = ?';
+      const sizeOptionsJson = size_options ? JSON.stringify(size_options) : null;
+      db.query(query, [name, description, requires_size, size_type, sizeOptionsJson, this.id], (err, result) => {
         if (err) reject(err);
         else resolve(result.affectedRows > 0);
       });
@@ -65,6 +70,22 @@ class Category {
       });
     });
   }
+
+  // Get size options as array
+  getSizeOptionsArray() {
+    if (!this.size_options) return [];
+    try {
+      return JSON.parse(this.size_options);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  // Set size options from array
+  setSizeOptionsArray(options) {
+    this.size_options = options ? JSON.stringify(options) : null;
+  }
 }
 
 export default Category;
+
