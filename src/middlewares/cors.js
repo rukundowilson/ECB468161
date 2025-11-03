@@ -5,13 +5,29 @@ export const corsOptions = {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
-    // In production, you should specify allowed origins
-    const allowedOrigins = [
+    // Development origins
+    const devOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001'
     ];
+    
+    // Production origins - add your frontend production URL here
+    const prodOrigins = [
+      'https://ecf468161.onrender.com', // Add your frontend production URL
+      // Add more production origins as needed
+    ];
+    
+    // Combine all allowed origins
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? [...prodOrigins, ...devOrigins] // Include dev origins for flexibility
+      : devOrigins;
+    
+    // Allow any origin in production for now (you can restrict this later)
+    if (process.env.NODE_ENV === 'production') {
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
