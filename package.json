@@ -4,10 +4,13 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
+    "start": "node server.js",
+    "build": "echo \"No build step required for Node.js backend\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon",
     "migrate:image": "node ./src/scripts/migrate_add_image_url.js",
     "migrate:variant-image": "node ./src/scripts/migrate_add_variant_image_url.js",
+    "migrate:product-flags": "node ./src/scripts/migrate_add_product_flags.js",
     "migrate:customers": "node ./src/scripts/migrate_create_customers_table.js",
     "migrate:addresses": "node ./src/scripts/migrate_create_addresses_table.js",
     "migrate:carts": "node ./src/scripts/migrate_create_carts_table.js",
