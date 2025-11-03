@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "build": "echo \"No build step required for Node.js backend\"",
+    "build": "npm install",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon",
     "migrate:image": "node ./src/scripts/migrate_add_image_url.js",
