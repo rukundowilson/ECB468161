@@ -24,14 +24,21 @@ const router = express.Router();
 
 // Product routes
 router.get('/', ProductController.getAllProducts);
-router.get('/:id', ProductController.getProductById);
 router.post('/', ProductController.createProduct);
+
+// Product quantity route (must come before /:id to avoid route conflicts)
+router.get('/:id/quantity', ProductController.getProductTotalQuantity);
+
+// Product variants (must come before /:id to avoid route conflicts)
+router.get('/:id/variants', ProductController.getProductVariants);
+router.post('/:id/variants', ProductController.createVariant);
+
+// Product CRUD routes
+router.get('/:id', ProductController.getProductById);
 router.put('/:id', ProductController.updateProduct);
 router.delete('/:id', ProductController.deleteProduct);
 
-// Product variants
-router.get('/:id/variants', ProductController.getProductVariants);
-router.post('/:id/variants', ProductController.createVariant);
+// Variant update/delete routes
 router.put('/variants/:variantId', ProductController.updateVariant);
 router.delete('/variants/:variantId', ProductController.deleteVariant);
 

@@ -7,10 +7,17 @@ import streamifier from 'streamifier';
 
 class ProductController {
   // Get all products
+  // By default, only returns products that have at least one variant
+  // Set includeWithoutVariants=true to get all products including those without variants (for admin)
   static async getAllProducts(req, res) {
     try {
-      const { category_id, active, search } = req.query;
-      const filters = { category_id, active, search };
+      const { category_id, active, search, includeWithoutVariants } = req.query;
+      const filters = { 
+        category_id, 
+        active, 
+        search,
+        includeWithoutVariants: includeWithoutVariants === 'true' || includeWithoutVariants === true
+      };
       
       const products = await Product.getAll(filters);
       
@@ -29,6 +36,7 @@ class ProductController {
   }
 
   // Get product by ID
+  // Only returns product if it has at least one variant
   static async getProductById(req, res) {
     try {
       const { id } = req.params;
@@ -38,6 +46,15 @@ class ProductController {
         return res.status(404).json({
           success: false,
           message: 'Product not found'
+        });
+      }
+      
+      // Check if product has variants - products without variants cannot be displayed
+      const variants = await ProductVariant.getByProductId(id);
+      if (!variants || variants.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not available - no variants found. Products must have at least one variant to be displayed.'
         });
       }
       
@@ -222,6 +239,59 @@ class ProductController {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch product variants',
+        error: error.message
+      });
+    }
+  }
+
+  // Get total product quantity (sum of all variant quantities)
+  static async getProductTotalQuantity(req, res) {
+    try {
+      const { id } = req.params;
+      const Stock = (await import('../models/Stock.js')).default;
+      
+      // Get all variants for this product
+      const variants = await ProductVariant.getByProductId(id);
+      
+      if (!variants || variants.length === 0) {
+        return res.json({
+          success: true,
+          data: {
+            total_quantity: 0,
+            total_available: 0,
+            variant_count: 0
+          }
+        });
+      }
+      
+      // Get stock for all variants
+      let totalQuantity = 0;
+      let totalAvailable = 0;
+      
+      for (const variant of variants) {
+        const stockData = await Stock.getStockByProduct(id, variant.id);
+        const variantQuantity = stockData.reduce((sum, stock) => sum + stock.quantity_on_hand, 0);
+        const variantAvailable = stockData.reduce((sum, stock) => {
+          const available = stock.quantity_on_hand - stock.quantity_reserved;
+          return sum + (available > 0 ? available : 0);
+        }, 0);
+        
+        totalQuantity += variantQuantity;
+        totalAvailable += variantAvailable;
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          total_quantity: totalQuantity,
+          total_available: totalAvailable,
+          variant_count: variants.length
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to calculate product quantity',
         error: error.message
       });
     }
