@@ -11,6 +11,7 @@ class Product {
     this.brand = data.brand;
     this.price = data.price;
     this.image_url = data.image_url;
+    this.size = data.size || null;
     this.active = data.active;
     this.is_jirani_recommended = data.is_jirani_recommended || 0;
     this.show_in_new_arrivals = data.show_in_new_arrivals || 0;
@@ -138,9 +139,17 @@ class Product {
   // Create new product
   static async create(productData) {
     return new Promise((resolve, reject) => {
-      const { sku, name, description, category_id, brand, price, image_url = null, active = 1, is_jirani_recommended = 0, show_in_new_arrivals = 0 } = productData;
+      const { sku, name, description, category_id, brand, price, image_url = null, size = null, active = 1, is_jirani_recommended = 0, show_in_new_arrivals = 0 } = productData;
       
-      // Try with new columns first, fallback to old schema if columns don't exist
+      // Try with all new columns first, fallback to old schema if columns don't exist
+      const queryWithAllFields = `
+        INSERT INTO products (sku, name, description, category_id, brand, price, image_url, size, active, is_jirani_recommended, show_in_new_arrivals) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      const queryWithSizeOnly = `
+        INSERT INTO products (sku, name, description, category_id, brand, price, image_url, size, active) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
       const queryWithNewFields = `
         INSERT INTO products (sku, name, description, category_id, brand, price, image_url, active, is_jirani_recommended, show_in_new_arrivals) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -150,13 +159,41 @@ class Product {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
-      db.query(queryWithNewFields, [sku, name, description, category_id, brand, price, image_url, active, is_jirani_recommended, show_in_new_arrivals], (err, result) => {
+      db.query(queryWithAllFields, [sku, name, description, category_id, brand, price, image_url, size, active, is_jirani_recommended, show_in_new_arrivals], (err, result) => {
         if (err) {
-          // If columns don't exist, try without them
-          if (err.code === 'ER_BAD_FIELD_ERROR' && (err.message.includes('is_jirani_recommended') || err.message.includes('show_in_new_arrivals'))) {
-            db.query(queryWithoutNewFields, [sku, name, description, category_id, brand, price, image_url, active], (retryErr, retryResult) => {
-              if (retryErr) reject(retryErr);
-              else resolve(retryResult.insertId);
+          // If size column doesn't exist, try without it
+          if (err.code === 'ER_BAD_FIELD_ERROR' && err.message.includes('size')) {
+            db.query(queryWithNewFields, [sku, name, description, category_id, brand, price, image_url, active, is_jirani_recommended, show_in_new_arrivals], (retryErr, retryResult) => {
+              if (retryErr) {
+                // If other new columns don't exist, try without them
+                if (retryErr.code === 'ER_BAD_FIELD_ERROR' && (retryErr.message.includes('is_jirani_recommended') || retryErr.message.includes('show_in_new_arrivals'))) {
+                  db.query(queryWithoutNewFields, [sku, name, description, category_id, brand, price, image_url, active], (finalErr, finalResult) => {
+                    if (finalErr) reject(finalErr);
+                    else resolve(finalResult.insertId);
+                  });
+                } else {
+                  reject(retryErr);
+                }
+              } else {
+                resolve(retryResult.insertId);
+              }
+            });
+          } else if (err.code === 'ER_BAD_FIELD_ERROR' && (err.message.includes('is_jirani_recommended') || err.message.includes('show_in_new_arrivals'))) {
+            // Try with size but without other new fields
+            db.query(queryWithSizeOnly, [sku, name, description, category_id, brand, price, image_url, size, active], (retryErr, retryResult) => {
+              if (retryErr) {
+                // If size also doesn't exist, try without any new fields
+                if (retryErr.code === 'ER_BAD_FIELD_ERROR' && retryErr.message.includes('size')) {
+                  db.query(queryWithoutNewFields, [sku, name, description, category_id, brand, price, image_url, active], (finalErr, finalResult) => {
+                    if (finalErr) reject(finalErr);
+                    else resolve(finalResult.insertId);
+                  });
+                } else {
+                  reject(retryErr);
+                }
+              } else {
+                resolve(retryResult.insertId);
+              }
             });
           } else {
             reject(err);
@@ -171,7 +208,7 @@ class Product {
   // Update product
   async update(updateData) {
     return new Promise((resolve, reject) => {
-      const { sku, name, description, category_id, brand, price, image_url = null, active, is_jirani_recommended, show_in_new_arrivals } = updateData;
+      const { sku, name, description, category_id, brand, price, image_url = null, size = null, active, is_jirani_recommended, show_in_new_arrivals } = updateData;
       
       // Build dynamic query to handle optional fields
       const fields = [];
@@ -184,6 +221,7 @@ class Product {
       if (brand !== undefined) { fields.push('brand = ?'); values.push(brand); }
       if (price !== undefined) { fields.push('price = ?'); values.push(price); }
       if (image_url !== undefined) { fields.push('image_url = ?'); values.push(image_url); }
+      if (size !== undefined) { fields.push('size = ?'); values.push(size); }
       if (active !== undefined) { fields.push('active = ?'); values.push(active); }
       
       // Only include new fields if they're provided (graceful fallback if columns don't exist)
@@ -215,15 +253,15 @@ class Product {
       db.query(query, values, (err, result) => {
         if (err) {
           // If error is about unknown column, silently ignore those fields and retry without them
-          if (err.code === 'ER_BAD_FIELD_ERROR' && (err.message.includes('is_jirani_recommended') || err.message.includes('show_in_new_arrivals'))) {
+          if (err.code === 'ER_BAD_FIELD_ERROR') {
             // Retry without the problematic fields
             const safeFields = fields.filter((f, i) => {
               const fieldName = f.split(' = ')[0];
-              return fieldName !== 'is_jirani_recommended' && fieldName !== 'show_in_new_arrivals';
+              return fieldName !== 'is_jirani_recommended' && fieldName !== 'show_in_new_arrivals' && fieldName !== 'size';
             });
             const safeValues = values.slice(0, -1).filter((v, i) => {
               const fieldName = fields[i].split(' = ')[0];
-              return fieldName !== 'is_jirani_recommended' && fieldName !== 'show_in_new_arrivals';
+              return fieldName !== 'is_jirani_recommended' && fieldName !== 'show_in_new_arrivals' && fieldName !== 'size';
             });
             safeValues.push(this.id);
             

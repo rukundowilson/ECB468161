@@ -36,7 +36,7 @@ class ProductController {
   }
 
   // Get product by ID
-  // Only returns product if it has at least one variant
+  // Returns product if it has at least one variant OR if it has a size (for products without variants)
   static async getProductById(req, res) {
     try {
       const { id } = req.params;
@@ -49,12 +49,16 @@ class ProductController {
         });
       }
       
-      // Check if product has variants - products without variants cannot be displayed
+      // Check if product has variants
       const variants = await ProductVariant.getByProductId(id);
-      if (!variants || variants.length === 0) {
+      
+      // Products can be displayed if:
+      // 1. They have at least one variant, OR
+      // 2. They have a size (for products without variants)
+      if ((!variants || variants.length === 0) && !product.size) {
         return res.status(404).json({
           success: false,
-          message: 'Product not available - no variants found. Products must have at least one variant to be displayed.'
+          message: 'Product not available - no variants found and no size specified. Products must have at least one variant or a size to be displayed.'
         });
       }
       
@@ -85,13 +89,32 @@ class ProductController {
       }
       
       // Validate category_id if provided
+      let category = null;
       if (productData.category_id) {
-        const category = await Category.getById(productData.category_id);
+        category = await Category.getById(productData.category_id);
         if (!category) {
           return res.status(400).json({
             success: false,
             message: 'Invalid category ID provided'
           });
+        }
+        
+        // Validate size if category requires it
+        if (category.requires_size === 1) {
+          if (!productData.size || !productData.size.trim()) {
+            return res.status(400).json({
+              success: false,
+              message: `Size is required for products in the '${category.name}' category`
+            });
+          }
+          
+          // Validate size format if size is provided
+          if (productData.size && !validateSizeFormat(productData.size, category.name, category)) {
+            return res.status(400).json({
+              success: false,
+              message: `Invalid size format for ${category.name} category. Please use appropriate size format.`
+            });
+          }
         }
       }
       

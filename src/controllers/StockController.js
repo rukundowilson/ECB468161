@@ -60,7 +60,18 @@ class StockController {
   static async getStockByProduct(req, res) {
     try {
       const { productId } = req.params;
-      const { variant_id } = req.query;
+      let { variant_id } = req.query;
+      
+      // Convert string "null" to actual null, or parse number
+      if (variant_id === 'null' || variant_id === '') {
+        variant_id = null;
+      } else if (variant_id !== undefined) {
+        variant_id = parseInt(variant_id);
+        if (isNaN(variant_id)) {
+          variant_id = undefined; // Invalid number, treat as undefined (all variants)
+        }
+      }
+      
       const stockData = await Stock.getStockByProduct(productId, variant_id);
       
       res.json({

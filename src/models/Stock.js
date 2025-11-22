@@ -38,6 +38,7 @@ class Stock {
   }
 
   // Get all stock for a product across all warehouses
+  // variantId can be a number (specific variant), null (product without variant), or undefined (all variants)
   static async getStockByProduct(productId, variantId = null) {
     return new Promise((resolve, reject) => {
       let query = `
@@ -49,10 +50,16 @@ class Stock {
       `;
       const params = [productId];
       
-      if (variantId) {
+      // Handle variant_id filtering
+      if (variantId === null) {
+        // Explicitly request stock for product without variant
+        query += ' AND s.variant_id IS NULL';
+      } else if (variantId !== undefined && variantId !== null) {
+        // Request stock for specific variant
         query += ' AND s.variant_id = ?';
         params.push(variantId);
       }
+      // If variantId is undefined, don't filter by variant_id (return all stock for product)
       
       query += ' ORDER BY w.name';
       
