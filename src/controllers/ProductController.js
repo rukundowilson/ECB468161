@@ -7,16 +7,20 @@ import streamifier from 'streamifier';
 
 class ProductController {
   // Get all products
-  // By default, only returns products that have at least one variant
-  // Set includeWithoutVariants=true to get all products including those without variants (for admin)
+  // By default, returns all products including those without variants
+  // Set includeWithoutVariants=false to exclude products without variants
   static async getAllProducts(req, res) {
     try {
       const { category_id, active, search, includeWithoutVariants } = req.query;
+      // By default, include products without variants (set to false to exclude them)
+      const shouldInclude = includeWithoutVariants === undefined || 
+                           includeWithoutVariants === 'true' || 
+                           includeWithoutVariants === true;
       const filters = { 
         category_id, 
         active, 
         search,
-        includeWithoutVariants: includeWithoutVariants === 'true' || includeWithoutVariants === true
+        includeWithoutVariants: shouldInclude
       };
       
       const products = await Product.getAll(filters);
@@ -36,7 +40,7 @@ class ProductController {
   }
 
   // Get product by ID
-  // Returns product if it has at least one variant OR if it has a size (for products without variants)
+  // Returns product regardless of whether it has variants or size
   static async getProductById(req, res) {
     try {
       const { id } = req.params;
@@ -46,19 +50,6 @@ class ProductController {
         return res.status(404).json({
           success: false,
           message: 'Product not found'
-        });
-      }
-      
-      // Check if product has variants
-      const variants = await ProductVariant.getByProductId(id);
-      
-      // Products can be displayed if:
-      // 1. They have at least one variant, OR
-      // 2. They have a size (for products without variants)
-      if ((!variants || variants.length === 0) && !product.size) {
-        return res.status(404).json({
-          success: false,
-          message: 'Product not available - no variants found and no size specified. Products must have at least one variant or a size to be displayed.'
         });
       }
       

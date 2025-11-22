@@ -27,11 +27,11 @@ class Product {
   }
 
   // Get all products with optional filters
-  // By default, only returns products that have at least one variant
-  // Set includeWithoutVariants=true to get all products including those without variants
+  // By default, returns all products including those without variants
+  // Set includeWithoutVariants=false to exclude products without variants
   static async getAll(filters = {}) {
     return new Promise((resolve, reject) => {
-      const includeWithoutVariants = filters.includeWithoutVariants === true;
+      const excludeWithoutVariants = filters.includeWithoutVariants === false;
       
       let query = `
         SELECT DISTINCT p.*, c.name as category_name, c.requires_size, c.size_type, c.size_options
@@ -40,7 +40,7 @@ class Product {
       `;
       
       // Only use INNER JOIN if we want to exclude products without variants
-      if (!includeWithoutVariants) {
+      if (excludeWithoutVariants) {
         query += ` INNER JOIN product_variants pv ON p.id = pv.product_id`;
       }
       
